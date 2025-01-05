@@ -1,89 +1,80 @@
-Diamorphine
-===========
+# Diamorphine Rootkit
 
-Diamorphine is a LKM rootkit for Linux Kernels 2.6.x/3.x/4.x/5.x/6.x (x86/x86_64 and ARM64)
+Diamorphine is a simple LKM (Loadable Kernel Module) rootkit for Linux. It provides features for hiding processes, files, and sockets, as well as capabilities for privilege escalation. This fork includes additional modifications for research purposes, particularly in evading detection by Intrusion Detection Systems (IDS) such as Wazuh.
 
-Features
---
+## Features
 
-- When loaded, the module starts invisible;
+- Hide processes based on a given PID.
+- Hide files and directories.
+- Hide sockets.
+- Bypass certain detection mechanisms of common IDS tools.
+- Added support for syscall overrides for `getsid` and `getpgid` syscalls, designed to evade detection under specific configurations.
 
-- Hide/unhide any process by sending a signal 31;
+## Changes in This Fork
 
-- Sending a signal 63(to any pid) makes the module become (in)visible;
+This fork was created by me, the following modifications were made:
 
-- Sending a signal 64(to any pid) makes the given user become root;
+### New Syscalls Overridden
 
-- Files or directories starting with the MAGIC_PREFIX become invisible;
+- **`getsid` (System Call #124)**: Modified to include an evasion mechanism where invisible processes return an error code `-ESRCH` to mimic the behavior of non-existent processes.
+- **`getpgid` (System Call #121)**: Similarly modified to return `-ESRCH` for invisible processes.
 
-- Source: https://github.com/m0nad/Diamorphine
+### Debugging Enhancements
 
-Install
---
+- Added extensive `printk` logging to track calls to the overridden syscalls and the invisibility checks for processes.
+- Logs include PID values and invisibility status for enhanced transparency and debugging during research.
 
-Verify if the kernel is 2.6.x/3.x/4.x/5.x
-```
-uname -r
-```
+### Code Structure Adjustments
 
-Clone the repository
-```
-git clone https://github.com/m0nad/Diamorphine
-```
+- Updated syscall table interactions to include the newly overridden syscalls.
+- Adjusted the initialization and cleanup routines to handle the additional syscalls without impacting other functionalities.
 
-Enter the folder
-```
-cd Diamorphine
-```
+## Purpose of Changes
 
-Compile
-```
+These updates aim to:
+
+1. Investigate how these modifications affect the detection rates of the rootkit by IDS tools such as Wazuh.
+2. Explore potential gaps in IDS configurations that allow evasion.
+3. Provide a basis for improving IDS detection rules to counteract these evasion techniques.
+
+## Usage
+
+### Compilation
+
+Ensure you have the Linux kernel headers installed for your target kernel. Then compile the rootkit using `make`:
+
+```bash
 make
 ```
 
-Load the module(as root)
-```
-insmod diamorphine.ko
-```
+### Loading the Rootkit
 
-Uninstall
---
+Use `insmod` to load the module into the kernel:
 
-The module starts invisible, to remove you need to make it visible
-```
-kill -63 0
+```bash
+sudo insmod diamorphine.ko
 ```
 
-Then remove the module(as root)
+### Unloading the Rootkit
+
+Use `rmmod` to unload the module from the kernel:
+
+```bash
+sudo rmmod diamorphine
 ```
-rmmod diamorphine
+
+### Debugging
+
+Logs are available in the kernel ring buffer. Use the following command to view them:
+
+```bash
+dmesg | grep ROOTKITS
 ```
 
-References
---
-Wikipedia Rootkit
-https://en.wikipedia.org/wiki/Rootkit
+## Disclaimer
 
-Linux Device Drivers
-http://lwn.net/Kernel/LDD3/
+This code is for educational and research purposes only. Using this rootkit on systems you do not own or without explicit authorization is illegal and unethical. Always ensure compliance with applicable laws and guidelines.
 
-LKM HACKING
-https://web.archive.org/web/20140701183221/https://www.thc.org/papers/LKM_HACKING.html
+## Acknowledgments
 
-Memset's blog
-http://memset.wordpress.com/
-
-Linux on-the-fly kernel patching without LKM
-http://phrack.org/issues/58/7.html
-
-WRITING A SIMPLE ROOTKIT FOR LINUX
-https://web.archive.org/web/20160620231623/http://big-daddy.fr/repository/Documentation/Hacking/Security/Malware/Rootkits/writing-rootkit.txt
-
-Linux Cross Reference
-http://lxr.free-electrons.com/
-
-zizzu0 LinuxKernelModules
-https://github.com/zizzu0/LinuxKernelModules/
-
-Linux Rootkits: New Methods for Kernel 5.7+
-https://xcellerator.github.io/posts/linux_rootkits_11/
+This project is based on the original Diamorphine rootkit. Additional modifications were implemented as part of a bachelor thesis research project focusing on rootkit detection and evasion.
